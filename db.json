@@ -1,0 +1,92 @@
+{
+  "teachers": [
+    {
+      "id": "1759333964196",
+      "name": "francois",
+      "email": "cois1702@gmail.com",
+      "password": "1234"
+    },
+    {
+      "id": "1759335166647",
+      "name": "Johan",
+      "email": "test",
+      "password": "test"
+    },
+    {
+      "id": "1759677158843",
+      "name": "johan",
+      "email": "test1",
+      "password": "test1"
+    },
+    {
+      "id": "1759677391800",
+      "name": "1",
+      "email": "1",
+      "password": "1"
+    },
+    {
+      "id": "1759677624561",
+      "name": "test2",
+      "email": "test2",
+      "password": "test2"
+    },
+    {
+      "id": "1759678413944",
+      "name": "test3",
+      "email": "test3",
+      "password": "test3"
+    },
+    {
+      "id": "1759703460644",
+      "name": "veronica",
+      "email": "veronica@gmail.com",
+      "password": "1234"
+    },
+    {
+      "id": "1759705838312",
+      "name": "percy",
+      "email": "percy@gmail.com",
+      "password": "123456"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "1759763076794",
+      "grade": "1",
+      "classLetter": "A",
+      "subject": "test",
+      "description": "test",
+      "dueDate": "2025-10-10",
+      "done": false,
+      "teacher": {
+        "id": "1759333964196",
+        "name": "francois"
+      },
+      "createdAt": "2025-10-06T15:04:36.794Z"
+    }
+  ],
+  "announcements": [
+    {
+      "id": "1759763091748",
+      "grade": "1",
+      "classLetter": "A",
+      "message": "test",
+      "teacher": {
+        "id": "1759333964196",
+        "name": "francois"
+      },
+      "createdAt": "2025-10-06T15:04:51.748Z"
+    }
+  ],
+  "uploads": [
+    {
+      "id": "1759763108905",
+      "teacherId": "1759333964196",
+      "filename": "1759763108899-Zenith.jpg",
+      "originalName": "Zenith.jpg",
+      "grade": "1",
+      "classLetter": "A",
+      "uploadedAt": "2025-10-06T15:05:08.905Z"
+    }
+  ]
+}

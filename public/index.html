@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Planner Multi-User</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Configure Tailwind to use Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom styles for the loader */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3b82f6;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom UI for the list items */
+        .task-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden">
+        <div class="flex flex-col items-center">
+            <div class="spinner"></div>
+            <p class="mt-2 text-gray-700">Loading Application...</p>
+        </div>
+    </div>
+
+    <!-- Custom Alert/Confirm Modal -->
+    <div id="customModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-100">
+            <h4 id="modalTitle" class="text-xl font-bold mb-3 text-red-600"></h4>
+            <p id="modalMessage" class="mb-5 text-gray-700"></p>
+            <div id="modalActions" class="flex justify-end space-x-3">
+                <!-- Buttons will be injected here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Application Container -->
+    <div class="max-w-4xl mx-auto">
+        
+        <!-- Header: School Name and Logo -->
+        <header id="schoolHeader" class="flex items-center mb-8 p-4 bg-white rounded-xl shadow-lg">
+            <img id="schoolLogo" alt="School Logo" src="https://placehold.co/50x50/3b82f6/ffffff?text=Z" class="h-12 w-12 rounded-full mr-3 object-cover">
+            <span id="schoolName" class="text-2xl font-extrabold text-blue-600">Loading School Name...</span>
+        </header>
+
+        <!-- Role Selection Card -->
+        <div id="roleSelectCard" class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Select Your Role to Continue</h2>
+            <div class="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <label for="role" class="font-medium">I am a:</label>
+                <select id="role" class="p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 flex-grow">
+                    <option value="" disabled selected>-- Choose Role --</option>
+                    <option value="admin">Admin</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="student">Student/Parent</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Login Forms (Hidden by default) -->
+        <div id="authForms" class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <!-- Admin Form -->
+            <div id="adminForm" class="hidden">
+                <h3 class="text-lg font-bold mb-4 text-blue-600">Admin Login (Local Demo)</h3>
+                <input type="email" id="adminEmail" placeholder="Email (admin@school.com)" class="w-full p-2 mb-3 border rounded-lg focus:ring-blue-500 focus:border-blue-500"><br>
+                <input type="password" id="adminPassword" placeholder="Password (admin123)" class="w-full p-2 mb-4 border rounded-lg focus:ring-blue-500 focus:border-blue-500"><br>
+                <button onclick="loginAdmin()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">Login as Admin</button>
+            </div>
+
+            <!-- Teacher Form -->
+            <div id="teacherForm" class="hidden">
+                <h3 class="text-lg font-bold mb-4 text-indigo-600">Teacher Login</h3>
+                <input type="email" id="teacherEmail" placeholder="Email" class="w-full p-2 mb-3 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"><br>
+                <input type="password" id="teacherPassword" placeholder="Password" class="w-full p-2 mb-4 border rounded-lg focus:ring-indigo-500 focus:border-indigo-500"><br>
+                <button onclick="loginTeacher()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">Login as Teacher</button>
+                <p class="text-sm text-gray-500 mt-2">Hint: Use an email registered by the Admin (e.g., test@school.com, pass123)</p>
+            </div>
+
+            <!-- Student Form -->
+            <div id="studentForm" class="hidden">
+                <h3 class="text-lg font-bold mb-4 text-green-600">Student/Parent View</h3>
+                <div class="flex space-x-4 mb-4">
+                    <div class="flex-1">
+                        <label for="studentGrade" class="block text-sm font-medium text-gray-700">Grade:</label>
+                        <select id="studentGrade" class="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"></select>
+                    </div>
+                    <div class="flex-1">
+                        <label for="studentClass" class="block text-sm font-medium text-gray-700">Class:</label>
+                        <select id="studentClass" class="w-full p-2 border rounded-lg focus:ring-green-500 focus:border-green-500"></select>
+                    </div>
+                </div>
+                <button onclick="loginStudent()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">View Tasks</button>
+            </div>
+        </div>
+
+
+        <!-- Main Application Area (Visible after login) -->
+        <div id="app" class="hidden">
+            <div class="flex justify-between items-center mb-6 p-4 bg-gray-100 rounded-lg shadow-inner">
+                <h3 id="currentUser" class="text-xl font-semibold text-gray-800"></h3>
+                <button onclick="logout()" id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition duration-200 shadow-md">Logout</button>
+            </div>
+
+
+            <!-- Admin Controls -->
+            <div id="adminControls" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" style="display:none;">
+                
+                <!-- Add Teacher -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-500">
+                    <h4 class="text-xl font-bold mb-4">Add Teacher</h4>
+                    <input type="text" id="newTeacherName" placeholder="Teacher Name" class="w-full p-2 mb-3 border rounded-lg"><br>
+                    <input type="email" id="newTeacherEmail" placeholder="Email (e.g., joe@school.com)" class="w-full p-2 mb-3 border rounded-lg"><br>
+                    <input type="password" id="newTeacherPassword" placeholder="Password (min 6 chars)" class="w-full p-2 mb-4 border rounded-lg"><br>
+                    <button onclick="registerTeacher()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200">Register Teacher</button>
+                </div>
+
+                <!-- Manage School -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-500">
+                    <h4 class="text-xl font-bold mb-4">Manage School</h4>
+                    <input type="text" id="schoolNameInput" placeholder="New School Name" class="w-full p-2 mb-3 border rounded-lg"><br>
+                    <!-- Note: Logo update requires server-side file handling, so we disable the file input for a pure client-side demo -->
+                    <p class="text-sm text-gray-500 mb-4">Logo update disabled in client-only mode.</p>
+                    <button onclick="updateSchoolInfo()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200">Update Info</button>
+                </div>
+
+                <!-- Reset Teacher Password -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-500">
+                    <h4 class="text-xl font-bold mb-4">Reset Teacher Password</h4>
+                    <input type="email" id="resetTeacherEmail" placeholder="Teacher Email to Reset" class="w-full p-2 mb-3 border rounded-lg"><br>
+                    <input type="password" id="resetTeacherPasswordInput" placeholder="New Password (min 6 chars)" class="w-full p-2 mb-4 border rounded-lg"><br>
+                    <button onclick="resetTeacherPassword()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200">Reset Password</button>
+                </div>
+
+            </div>
+
+
+            <!-- Teacher Controls -->
+            <div id="teacherControls" class="grid grid-cols-1 gap-6 mb-8" style="display:none;">
+                
+                <!-- Add Task Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+                    <h4 class="text-xl font-bold mb-4 text-indigo-700">Add New Task / Homework</h4>
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Grade</label>
+                            <select id="grade" class="w-full p-2 border rounded-lg"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Class</label>
+                            <select id="class" class="w-full p-2 border rounded-lg"></select>
+                        </div>
+                    </div>
+                    <input type="text" id="subject" placeholder="Subject (e.g., Math)" class="w-full p-2 mb-3 border rounded-lg"><br>
+                    <input type="text" id="taskDesc" placeholder="Task Description" class="w-full p-2 mb-3 border rounded-lg"><br>
+                    <input type="date" id="dueDate" class="w-full p-2 mb-4 border rounded-lg"><br>
+                    <button onclick="addTask()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200">Add Task</button>
+                </div>
+
+                <!-- Announcements Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+                    <h4 class="text-xl font-bold mb-4 text-indigo-700">Manage Announcements</h4>
+                    <div class="flex space-x-4 mb-3">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700">Grade</label>
+                            <select id="announcementGrade" class="w-full p-2 border rounded-lg"></select>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700">Class</label>
+                            <select id="announcementClass" class="w-full p-2 border rounded-lg"></select>
+                        </div>
+                    </div>
+                    <textarea id="announcementMsg" placeholder="Write announcement message..." rows="3" class="w-full p-2 mb-4 border rounded-lg resize-none"></textarea>
+                    <button onclick="addAnnouncement()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 mb-6">Post Announcement</button>
+
+                    <h5 class="font-semibold text-gray-700 mb-2">My Current Announcements:</h5>
+                    <ul id="announcementList" class="space-y-2"></ul>
+                </div>
+
+                <!-- File Management Card (Note: File storage in Firestore is complex/expensive; storing *metadata* only) -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+                    <h4 class="text-xl font-bold mb-4 text-indigo-700">Manage File Metadata (Client-Only Demo)</h4>
+                    <p class="text-sm text-red-500 mb-3">NOTE: Actual file storage/upload is disabled in this client-only demo. This feature tracks file *metadata* only.</p>
+                    <label class="block text-sm font-medium text-gray-700">Select File:</label>
+                    <input type="text" id="uploadFileText" placeholder="Enter file name (e.g., Study_Guide.pdf)" class="w-full p-2 mb-3 border rounded-lg">
+                    <div class="flex space-x-4 mb-3">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700">Grade</label>
+                            <select id="uploadGrade" class="w-full p-2 border rounded-lg"></select>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700">Class</label>
+                            <select id="uploadClass" class="w-full p-2 border rounded-lg"></select>
+                        </div>
+                    </div>
+                    <button onclick="uploadFile()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 mb-6">Publish File Metadata</button>
+
+                    <h5 class="font-semibold text-gray-700 mb-2">Published Files:</h5>
+                    <ul id="uploadedFilesList" class="space-y-2"></ul>
+                </div>
+
+            </div>
+
+
+            <!-- Student/Parent View -->
+            <div id="studentAnnouncements" style="display:none;" class="space-y-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                    <h3 class="text-2xl font-bold mb-4 text-green-700">School & Class Announcements</h3>
+                    <ul id="studentAnnouncementList" class="space-y-3">
+                        <li class="text-gray-500">No announcements found.</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                    <h3 class="text-2xl font-bold mb-4 text-green-700">Shared Class Files</h3>
+                    <ul id="studentUploadedFilesList" class="space-y-3">
+                        <li class="text-gray-500">No files found.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- General Task List (for both Teacher and Student view) -->
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Assigned Tasks & Homework</h2>
+                <ul id="taskList" class="space-y-2">
+                    <li class="text-gray-500">No tasks loaded.</li>
+                </ul>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase variables
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // Global app state
+        let currentRole = '';
+        let currentTeacher = { id: '', name: '' };
+        let studentFilter = { grade: '', classLetter: '' };
+
+        // Globals provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- Utility Functions ---
+
+        /**
+         * Custom alert/message modal function.
+         * @param {string} title - The title of the modal.
+         * @param {string} message - The message content.
+         */
+        window.showAlert = function(title, message) {
+            const modal = document.getElementById('customModal');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            const actions = document.getElementById('modalActions');
+            actions.innerHTML = `
+                <button onclick="hideModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200">OK</button>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        /**
+         * Custom confirmation modal function (replaces window.confirm).
+         * @param {string} title - The title of the modal.
+         * @param {string} message - The confirmation message.
+         * @returns {Promise<boolean>} - Resolves true for Confirm, false for Cancel.
+         */
+        window.showConfirm = function(title, message) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('customModal');
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalMessage').textContent = message;
+                const actions = document.getElementById('modalActions');
+
+                const confirmAction = () => { hideModal(); resolve(true); };
+                const cancelAction = () => { hideModal(); resolve(false); };
+
+                actions.innerHTML = `
+                    <button id="modalCancel" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-200">Cancel</button>
+                    <button id="modalConfirm" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200">Confirm</button>
+                `;
+                document.getElementById('modalCancel').onclick = cancelAction;
+                document.getElementById('modalConfirm').onclick = confirmAction;
+                modal.classList.remove('hidden');
+            });
+        }
+
+        window.hideModal = function() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        // --- Firebase Initialization and Auth ---
+
+        /**
+         * Initializes Firebase and sets up the authentication listener.
+         */
+        async function initializeFirebase() {
+            try {
+                // setLogLevel('Debug'); // Uncomment for debugging
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Show loading overlay during auth
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+
+                // Try to sign in with custom token or anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    userId = user ? user.uid : null;
+                    isAuthReady = true;
+                    // Hide loading overlay once auth is complete
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    
+                    // Fetch initial public data after authentication
+                    loadSchoolInfo(); 
+                });
+
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                showAlert("Initialization Error", "Failed to connect to Firebase. Check console for details.");
+            }
+        }
+
+        // --- Firestore Paths ---
+
+        // Public data paths
+        const getSchoolInfoRef = () => doc(db, 'artifacts', appId, 'public', 'data', 'school', 'info');
+        const getTeachersColRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'teachers');
+        const getTasksColRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+        const getAnnouncementsColRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'announcements');
+        const getFilesColRef = () => collection(db, 'artifacts', appId, 'public', 'data', 'files');
+
+        // --- School Info Management (Public) ---
+
+        /**
+         * Fetches and listens to school info from Firestore.
+         */
+        window.loadSchoolInfo = function() {
+            if (!isAuthReady) return;
+
+            onSnapshot(getSchoolInfoRef(), (docSnapshot) => {
+                const logoEl = document.getElementById('schoolLogo');
+                const nameEl = document.getElementById('schoolName');
+                
+                if (docSnapshot.exists()) {
+                    const school = docSnapshot.data();
+                    // Set logo (use a placeholder/default if logo URL is missing)
+                    logoEl.src = school.schoolLogoUrl || 'https://placehold.co/50x50/3b82f6/ffffff?text=Z';
+                    // Set name, default to the app title if missing
+                    nameEl.textContent = school.schoolName || 'School Planner Multi-User';
+                } else {
+                    // Fallback names/logos if data doesn't exist
+                    nameEl.textContent = 'School Planner Multi-User (Default)';
+                    logoEl.src = 'https://placehold.co/50x50/3b82f6/ffffff?text=Z';
+                    // Create the initial document if it doesn't exist
+                    setDoc(getSchoolInfoRef(), { 
+                        schoolName: 'Trio Primary School (Initial)', 
+                        schoolLogoUrl: 'https://placehold.co/50x50/3b82f6/ffffff?text=Z' 
+                    }, { merge: true }).catch(e => console.error("Error creating school info doc:", e));
+                }
+            }, (error) => {
+                console.error("Error fetching school info:", error);
+            });
+        }
+
+        // --- UI Setup ---
+        
+        window.populateGradeClass = function() {
+            const gradeSelects = ['grade', 'studentGrade', 'announcementGrade', 'uploadGrade'];
+            const classSelects = ['class', 'studentClass', 'announcementClass', 'uploadClass'];
+
+            gradeSelects.forEach(id => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = '';
+                sel.add(new Option("All Grades", "all"));
+                for (let g = 1; g <= 12; g++) sel.add(new Option(`Grade ${g}`, g));
+            });
+
+            classSelects.forEach(id => {
+                const sel = document.getElementById(id);
+                sel.innerHTML = '';
+                sel.add(new Option("All Classes", "all"));
+                for (let c = 65; c <= 90; c++) sel.add(new Option(String.fromCharCode(c), String.fromCharCode(c)));
+            });
+            
+            // Set default non-'all' value for student login to Grade 1A
+            document.getElementById('studentGrade').value = '1';
+            document.getElementById('studentClass').value = 'A';
+        }
+
+        document.getElementById('role').addEventListener('change', function(){
+            document.getElementById('adminForm').classList.add('hidden');
+            document.getElementById('teacherForm').classList.add('hidden');
+            document.getElementById('studentForm').classList.add('hidden');
+            document.getElementById('app').classList.add('hidden');
+
+            if (this.value === 'admin') {
+                document.getElementById('adminForm').classList.remove('hidden');
+            } else if (this.value === 'teacher') {
+                document.getElementById('teacherForm').classList.remove('hidden');
+            } else if (this.value === 'student') {
+                document.getElementById('studentForm').classList.remove('hidden');
+            }
+        });
+
+        // --- Role Switching UI Logic ---
+        function setAppView(role) {
+            document.getElementById('roleSelectCard').classList.add('hidden');
+            document.getElementById('authForms').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('adminControls').style.display = 'none';
+            document.getElementById('teacherControls').style.display = 'none';
+            document.getElementById('studentAnnouncements').style.display = 'none';
+            
+            if (role === 'admin') {
+                document.getElementById('adminControls').style.display = 'grid';
+                document.getElementById('currentUser').innerText = `Logged in as Admin: ${userId}`;
+            } else if (role === 'teacher') {
+                document.getElementById('teacherControls').style.display = 'grid';
+                document.getElementById('currentUser').innerText = `Logged in as Teacher: ${currentTeacher.name} (${userId})`;
+                fetchTasks(true); // Teacher fetches all their own tasks for management
+                fetchAnnouncements(true);
+                fetchUploadedFiles(true);
+            } else if (role === 'student') {
+                document.getElementById('studentAnnouncements').style.display = 'block';
+                document.getElementById('currentUser').innerText = `Viewing data for Grade ${studentFilter.grade}${studentFilter.classLetter}`;
+                fetchStudentTasks(studentFilter.grade, studentFilter.classLetter);
+                fetchStudentAnnouncements(studentFilter.grade, studentFilter.classLetter);
+                fetchStudentFiles(studentFilter.grade, studentFilter.classLetter);
+            }
+        }
+        
+        window.logout = function() {
+            currentRole = '';
+            currentTeacher = { id: '', name: '' };
+            studentFilter = { grade: '', classLetter: '' };
+
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('authForms').classList.remove('hidden');
+            document.getElementById('roleSelectCard').classList.remove('hidden');
+            document.getElementById('role').value = '';
+            document.getElementById('currentUser').innerText = '';
+            
+            // Clear all list data
+            document.getElementById('taskList').innerHTML = '';
+            document.getElementById('announcementList').innerHTML = '';
+            document.getElementById('uploadedFilesList').innerHTML = '';
+            document.getElementById('studentAnnouncementList').innerHTML = '';
+            document.getElementById('studentUploadedFilesList').innerHTML = '';
+        }
+
+        // --- Admin Functions ---
+
+        window.loginAdmin = function() {
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+
+            // Simple client-side admin check for demo purposes
+            if (email === 'admin@school.com' && password === 'admin123') {
+                currentRole = 'admin';
+                setAppView('admin');
+                document.getElementById('adminForm').classList.add('hidden');
+            } else {
+                showAlert('Login Failed', 'Invalid admin credentials!');
+            }
+        }
+
+        window.registerTeacher = async function() {
+            const name = document.getElementById('newTeacherName').value.trim();
+            const email = document.getElementById('newTeacherEmail').value.trim();
+            const password = document.getElementById('newTeacherPassword').value.trim();
+
+            if (!name || !email || !password || password.length < 6) {
+                showAlert('Input Required', 'All fields are required, and password must be at least 6 characters.');
+                return;
+            }
+
+            try {
+                // For a client-only demo, we store the teacher details in a public collection 
+                // to enable the "loginTeacher" function to verify credentials.
+                const teacherRef = doc(getTeachersColRef(), email);
+                await setDoc(teacherRef, { 
+                    id: email, 
+                    name, 
+                    email, 
+                    password // Note: In a real app, never store passwords unhashed.
+                });
+                showAlert('Success', `${name} registered as a teacher with ID: ${email}.`);
+                document.getElementById('newTeacherName').value = '';
+                document.getElementById('newTeacherEmail').value = '';
+                document.getElementById('newTeacherPassword').value = '';
+
+            } catch (e) {
+                console.error("Error registering teacher: ", e);
+                showAlert('Error', `Failed to register teacher: ${e.message}`);
+            }
+        }
+
+        window.updateSchoolInfo = async function() {
+            const schoolName = document.getElementById('schoolNameInput').value.trim();
+            if (!schoolName) {
+                showAlert('Input Required', 'Please enter the new school name.');
+                return;
+            }
+
+            try {
+                // Update the single school info document
+                await updateDoc(getSchoolInfoRef(), { schoolName });
+                showAlert('Success', 'School name updated successfully!');
+                document.getElementById('schoolNameInput').value = '';
+            } catch (e) {
+                console.error("Error updating school info: ", e);
+                showAlert('Error', 'Failed to update school information.');
+            }
+        }
+
+        window.resetTeacherPassword = async function() {
+            const email = document.getElementById('resetTeacherEmail').value.trim();
+            const newPassword = document.getElementById('resetTeacherPasswordInput').value.trim();
+
+            if (!email || !newPassword || newPassword.length < 6) {
+                showAlert('Input Required', 'Please enter both the teacher\'s email and a new password (min 6 chars).');
+                return;
+            }
+
+            try {
+                // Update the password in the teachers collection
+                const teacherRef = doc(getTeachersColRef(), email);
+                await updateDoc(teacherRef, { password: newPassword });
+                showAlert('Success', `Password for ${email} reset successfully!`);
+                document.getElementById('resetTeacherEmail').value = '';
+                document.getElementById('resetTeacherPasswordInput').value = '';
+            } catch (e) {
+                console.error("Error resetting password: ", e);
+                showAlert('Error', `Failed to reset password. Teacher with email ${email} may not exist.`);
+            }
+        }
+        
+        // --- Teacher Functions ---
+        
+        window.loginTeacher = async function() {
+            const email = document.getElementById('teacherEmail').value.trim();
+            const password = document.getElementById('teacherPassword').value.trim();
+            if (!email || !password) { showAlert('Input Required', 'Fill all fields'); return; }
+
+            try {
+                const teacherDoc = await getDoc(doc(getTeachersColRef(), email));
+                
+                if (teacherDoc.exists()) {
+                    const data = teacherDoc.data();
+                    // Simple password check (in a real app, Firebase Auth should be used securely)
+                    if (data.password === password) {
+                        currentTeacher.id = data.id;
+                        currentTeacher.name = data.name;
+                        currentRole = 'teacher';
+                        setAppView('teacher');
+                        document.getElementById('teacherForm').classList.add('hidden');
+                    } else {
+                        showAlert('Login Failed', 'Invalid password.');
+                    }
+                } else {
+                    showAlert('Login Failed', 'Teacher email not found.');
+                }
+            } catch (e) {
+                console.error("Teacher login error:", e);
+                showAlert('Error', `Login failed due to a server error.`);
+            }
+        }
+
+        window.addTask = async function() {
+            const grade = document.getElementById('grade').value;
+            const classLetter = document.getElementById('class').value;
+            const subject = document.getElementById('subject').value.trim();
+            const description = document.getElementById('taskDesc').value.trim();
+            const dueDate = document.getElementById('dueDate').value;
+
+            if (!grade || !classLetter || !subject || !description || !dueDate) { 
+                showAlert('Input Required', 'Fill all fields.'); 
+                return; 
+            }
+
+            try {
+                await addDoc(getTasksColRef(), {
+                    grade,
+                    classLetter,
+                    subject,
+                    description,
+                    dueDate,
+                    teacher: currentTeacher,
+                    timestamp: new Date().toISOString()
+                });
+                showAlert('Success', 'Task added successfully!');
+                document.getElementById('subject').value = '';
+                document.getElementById('taskDesc').value = '';
+                document.getElementById('dueDate').value = '';
+            } catch (e) {
+                console.error("Error adding task: ", e);
+                showAlert('Error', 'Failed to add task.');
+            }
+        }
+
+        /**
+         * Real-time listener for Teacher's tasks (manage view).
+         * @param {boolean} isTeacherView - True if managing own tasks, false if viewing public tasks.
+         */
+        function fetchTasks(isTeacherView) {
+            if (!isAuthReady || (isTeacherView && !currentTeacher.id)) return;
+            
+            const taskList = document.getElementById('taskList');
+            let q = getTasksColRef();
+            
+            if (isTeacherView) {
+                // Teacher: filter tasks created by this teacher
+                q = query(q, where('teacher.id', '==', currentTeacher.id));
+            } else {
+                // Student: filter tasks by selected grade/class
+                q = query(q, 
+                    where('grade', 'in', [studentFilter.grade, 'all']),
+                    where('classLetter', 'in', [studentFilter.classLetter, 'all'])
+                );
+            }
+
+            onSnapshot(q, (snapshot) => {
+                taskList.innerHTML = '';
+                if (snapshot.empty) {
+                    taskList.innerHTML = '<li class="text-gray-500 p-2">No tasks found for this view.</li>';
+                    return;
+                }
+                
+                snapshot.docs.forEach(doc => {
+                    const t = { id: doc.id, ...doc.data() };
+                    const li = document.createElement('li');
+                    li.classList.add('task-list-item');
+                    li.innerHTML = `
+                        <div class="flex-grow">
+                            <span class="font-semibold text-gray-800">[${t.grade}${t.classLetter}] ${t.subject}:</span> 
+                            ${t.description} 
+                            <span class="text-sm text-gray-500">(Due: ${t.dueDate})</span>
+                            ${!isTeacherView ? `<span class="text-xs text-indigo-500 block sm:inline-block mt-1 sm:mt-0">(By: ${t.teacher?.name || 'Unknown'})</span>` : ''}
+                        </div>
+                        ${isTeacherView ? `<button data-id="${t.id}" class="delete-task-btn bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-3 rounded-lg transition duration-200">Delete</button>` : ''}
+                    `;
+                    taskList.appendChild(li);
+                });
+
+                // Attach event listeners for delete buttons (Teacher view only)
+                if (isTeacherView) {
+                    document.querySelectorAll('.delete-task-btn').forEach(btn => {
+                        btn.onclick = (e) => deleteTask(e.target.dataset.id);
+                    });
+                }
+            }, (error) => {
+                console.error("Error fetching tasks:", error);
+                taskList.innerHTML = '<li class="text-red-500 p-2">Failed to load tasks.</li>';
+            });
+        }
+
+        window.deleteTask = async function(taskId) {
+            const confirmed = await showConfirm('Confirm Delete', 'Are you sure you want to permanently delete this task?');
+            if (confirmed) {
+                try {
+                    await deleteDoc(doc(getTasksColRef(), taskId));
+                    showAlert('Success', 'Task deleted.');
+                } catch (e) {
+                    console.error("Error deleting task: ", e);
+                    showAlert('Error', 'Failed to delete task.');
+                }
+            }
+        }
+        
+        // --- Announcement Functions ---
+
+        window.addAnnouncement = async function() {
+            const grade = document.getElementById('announcementGrade').value;
+            const classLetter = document.getElementById('announcementClass').value;
+            const message = document.getElementById('announcementMsg').value.trim();
+            if (!message) { showAlert('Input Required', 'Message required.'); return; }
+
+            try {
+                await addDoc(getAnnouncementsColRef(), {
+                    grade,
+                    classLetter,
+                    message,
+                    teacher: currentTeacher,
+                    timestamp: new Date().toISOString()
+                });
+                showAlert('Success', 'Announcement posted successfully!');
+                document.getElementById('announcementMsg').value = '';
+            } catch (e) {
+                console.error("Error adding announcement: ", e);
+                showAlert('Error', 'Failed to add announcement.');
+            }
+        }
+        
+        function fetchAnnouncements(isTeacherView) {
+            if (!isAuthReady) return;
+            const list = isTeacherView ? document.getElementById('announcementList') : document.getElementById('studentAnnouncementList');
+            let q = getAnnouncementsColRef();
+
+            if (isTeacherView) {
+                q = query(q, where('teacher.id', '==', currentTeacher.id));
+            } else {
+                q = query(q, 
+                    where('grade', 'in', [studentFilter.grade, 'all']),
+                    where('classLetter', 'in', [studentFilter.classLetter, 'all'])
+                );
+            }
+
+            onSnapshot(q, (snapshot) => {
+                list.innerHTML = '';
+                if (snapshot.empty) {
+                    list.innerHTML = '<li class="text-gray-500 p-2">No announcements found.</li>';
+                    return;
+                }
+
+                snapshot.docs.forEach(doc => {
+                    const a = { id: doc.id, ...doc.data() };
+                    const li = document.createElement('li');
+                    li.classList.add('task-list-item', isTeacherView ? 'border-l-4 border-indigo-500' : 'border-l-4 border-green-500');
+                    
+                    const teacherInfo = a.teacher ? `(By: ${a.teacher.name})` : '';
+                    
+                    li.innerHTML = `
+                        <div class="flex-grow">
+                            <span class="font-semibold text-gray-800">[${a.grade}${a.classLetter}]:</span> 
+                            ${a.message} 
+                            <span class="text-xs text-gray-500">${teacherInfo}</span>
+                        </div>
+                        ${isTeacherView ? `<button data-id="${a.id}" class="delete-announcement-btn bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-3 rounded-lg transition duration-200">Delete</button>` : ''}
+                    `;
+                    list.appendChild(li);
+                });
+                
+                if (isTeacherView) {
+                    document.querySelectorAll('.delete-announcement-btn').forEach(btn => {
+                        btn.onclick = (e) => deleteAnnouncement(e.target.dataset.id);
+                    });
+                }
+            }, (error) => {
+                console.error("Error fetching announcements:", error);
+                list.innerHTML = '<li class="text-red-500 p-2">Failed to load announcements.</li>';
+            });
+        }
+        
+        function fetchStudentAnnouncements(grade, classLetter) {
+            // Set student filter and call generic fetch function
+            studentFilter = { grade, classLetter };
+            fetchAnnouncements(false);
+        }
+
+        window.deleteAnnouncement = async function(id) {
+            const confirmed = await showConfirm('Confirm Delete', 'Are you sure you want to permanently delete this announcement?');
+            if (confirmed) {
+                try {
+                    await deleteDoc(doc(getAnnouncementsColRef(), id));
+                    showAlert('Success', 'Announcement deleted.');
+                } catch (e) {
+                    console.error("Error deleting announcement: ", e);
+                    showAlert('Error', 'Failed to delete announcement.');
+                }
+            }
+        }
+        
+        // --- File Metadata Functions ---
+        
+        window.uploadFile = async function() {
+            const originalName = document.getElementById('uploadFileText').value.trim();
+            const grade = document.getElementById('uploadGrade').value;
+            const classLetter = document.getElementById('uploadClass').value;
+            
+            if (!originalName) { showAlert('Input Required', 'Please enter a filename.'); return; }
+
+            // In a real application, this would involve Firebase Storage. Here, we just store metadata.
+            try {
+                await addDoc(getFilesColRef(), {
+                    originalName,
+                    filename: originalName.replace(/[^a-z0-9.]/gi, '_'), // Mock file path/name
+                    grade,
+                    classLetter,
+                    teacher: currentTeacher,
+                    timestamp: new Date().toISOString()
+                });
+                showAlert('Success', `File metadata published successfully: ${originalName}`);
+                document.getElementById('uploadFileText').value = '';
+            } catch (e) {
+                console.error("Error publishing file metadata: ", e);
+                showAlert('Error', 'Failed to publish file metadata.');
+            }
+        }
+        
+        function fetchUploadedFiles(isTeacherView) {
+            if (!isAuthReady) return;
+            const list = isTeacherView ? document.getElementById('uploadedFilesList') : document.getElementById('studentUploadedFilesList');
+            let q = getFilesColRef();
+
+            if (isTeacherView) {
+                q = query(q, where('teacher.id', '==', currentTeacher.id));
+            } else {
+                q = query(q, 
+                    where('grade', 'in', [studentFilter.grade, 'all']),
+                    where('classLetter', 'in', [studentFilter.classLetter, 'all'])
+                );
+            }
+
+            onSnapshot(q, (snapshot) => {
+                list.innerHTML = '';
+                if (snapshot.empty) {
+                    list.innerHTML = '<li class="text-gray-500 p-2">No files found.</li>';
+                    return;
+                }
+
+                snapshot.docs.forEach(doc => {
+                    const f = { id: doc.id, ...doc.data() };
+                    const li = document.createElement('li');
+                    li.classList.add('task-list-item', isTeacherView ? 'border-l-4 border-indigo-500' : 'border-l-4 border-green-500');
+                    
+                    const teacherInfo = f.teacher ? `(By: ${f.teacher.name})` : '';
+                    const mockUrl = `#file_${f.filename}`; // Mock link since actual files aren't stored
+
+                    li.innerHTML = `
+                        <div class="flex-grow">
+                            <span class="font-semibold text-gray-800">[${f.grade}${f.classLetter}]</span> 
+                            <a href="${mockUrl}" class="text-blue-600 hover:underline" target="_blank">${f.originalName}</a>
+                            <span class="text-xs text-gray-500">${teacherInfo}</span>
+                        </div>
+                        ${isTeacherView ? `<button data-id="${f.id}" class="delete-file-btn bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-3 rounded-lg transition duration-200">Delete</button>` : ''}
+                    `;
+                    list.appendChild(li);
+                });
+                
+                if (isTeacherView) {
+                    document.querySelectorAll('.delete-file-btn').forEach(btn => {
+                        btn.onclick = (e) => deleteFile(e.target.dataset.id);
+                    });
+                }
+            }, (error) => {
+                console.error("Error fetching files:", error);
+                list.innerHTML = '<li class="text-red-500 p-2">Failed to load files.</li>';
+            });
+        }
+        
+        function fetchStudentFiles(grade, classLetter) {
+            // Set student filter and call generic fetch function
+            studentFilter = { grade, classLetter };
+            fetchUploadedFiles(false);
+        }
+
+        window.deleteFile = async function(id) {
+            const confirmed = await showConfirm('Confirm Delete', 'Are you sure you want to permanently delete this file record?');
+            if (confirmed) {
+                try {
+                    await deleteDoc(doc(getFilesColRef(), id));
+                    showAlert('Success', 'File record deleted.');
+                } catch (e) {
+                    console.error("Error deleting file: ", e);
+                    showAlert('Error', 'Failed to delete file record.');
+                }
+            }
+        }
+        
+        // --- Student/Parent Functions ---
+        
+        window.loginStudent = function() {
+            const grade = document.getElementById('studentGrade').value;
+            const classLetter = document.getElementById('studentClass').value;
+            
+            if (!grade || !classLetter) {
+                showAlert('Input Required', 'Please select a grade and class.');
+                return;
+            }
+            
+            currentRole = 'student';
+            studentFilter = { grade, classLetter };
+            setAppView('student');
+            document.getElementById('studentForm').classList.add('hidden');
+        }
+        
+        window.fetchStudentTasks = function(grade, classLetter) {
+            // Set student filter and call generic fetch function
+            studentFilter = { grade, classLetter };
+            fetchTasks(false);
+        }
+        
+        // --- Initialize ---
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            populateGradeClass();
+            initializeFirebase();
+        });
+
+    </script>
+</body>
+</html>

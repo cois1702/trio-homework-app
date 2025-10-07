@@ -1,0 +1,197 @@
+/* ---------- General Reset ---------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ---------- Body & Background ---------- */
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #74ebd5, #ACB6E5); /* gradient background */
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px; /* Reduced from 20px */
+}
+
+/* ---------- School Header ---------- */
+#schoolHeader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px; /* Reduced from 30px */
+    text-align: center;
+}
+#schoolLogo {
+    height: 40px; /* Slightly reduced logo size */
+    margin-right: 8px; /* Reduced from 10px */
+    border-radius: 6px; /* Slightly reduced border radius */
+    border: 1px solid #ccc;
+}
+#schoolName {
+    font-size: 1.8rem; /* Slightly reduced font size */
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 5px rgba(0,0,0,0.3);
+}
+
+/* ---------- Role Selection ---------- */
+#role {
+    padding: 6px; /* Reduced from 8px */
+    font-size: 13px; /* Reduced font size */
+    margin-bottom: 15px; /* Reduced from 20px */
+    border-radius: 4px; /* Reduced border radius */
+    border: 1px solid #ccc;
+}
+
+/* ---------- Forms (Admin, Teacher, Student) and Controls ---------- */
+#adminForm, #teacherForm, #studentForm,
+#adminControls, #teacherControls, #studentAnnouncements {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 18px; /* Reduced from 25px */
+    margin-bottom: 15px; /* Reduced from 20px */
+    border-radius: 8px; /* Reduced border radius */
+    width: 100%;
+    max-width: 380px; /* Slightly narrower max-width */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* Reduced shadow intensity */
+    transition: all 0.3s ease;
+}
+
+/* Form Headings */
+#adminForm h3, #teacherForm h3, #studentForm h3,
+#adminControls h3, #teacherControls h3, #studentAnnouncements h3 {
+    margin-bottom: 10px; /* Reduced from 15px */
+    color: #444;
+    font-size: 1.3rem; /* Slightly reduced font size */
+    text-align: center;
+}
+
+/* Inputs and Selects */
+#adminForm input, #teacherForm input, #studentForm input,
+#adminForm select, #teacherForm select, #studentForm select,
+#adminControls input, #teacherControls input, #teacherControls select {
+    width: 100%;
+    padding: 8px; /* Reduced from 10px */
+    margin: 5px 0; /* Reduced from 8px */
+    border-radius: 4px; /* Reduced border radius */
+    border: 1px solid #ccc;
+    font-size: 13px; /* Reduced font size */
+}
+
+/* Buttons */
+button {
+    width: 100%;
+    padding: 9px; /* Reduced from 10px */
+    margin-top: 7px; /* Reduced from 10px */
+    background-color: #4CAF50;
+    color: white;
+    font-size: 13px; /* Reduced font size */
+    font-weight: bold;
+    border: none;
+    border-radius: 4px; /* Reduced border radius */
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+button:hover {
+    background-color: #45a049;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* Reduced shadow intensity */
+}
+
+/* Logout Button */
+#logoutBtn {
+    background-color: #e74c3c;
+}
+#logoutBtn:hover {
+    background-color: #c0392b;
+}
+
+/* ---------- App Section ---------- */
+#app {
+    width: 100%;
+    max-width: 750px; /* Reduced max-width */
+    margin-top: 15px; /* Reduced from 20px */
+    background-color: rgba(255,255,255,0.9);
+    padding: 20px; /* Reduced from 25px */
+    border-radius: 12px; /* Reduced border radius */
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15); /* Reduced shadow intensity */
+    transition: all 0.3s ease;
+}
+
+/* Panels inside App */
+#adminControls, #teacherControls, #studentAnnouncements {
+    margin-bottom: 15px; /* Reduced from 20px */
+}
+
+/* Task & Announcement Lists */
+#taskList li, #announcementList li, #studentAnnouncementList li {
+    background-color: #f9f9f9;
+    padding: 8px 12px; /* Reduced from 10px 15px */
+    margin: 4px 0; /* Reduced from 6px */
+    border-radius: 6px; /* Reduced border radius */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+#taskList li:hover, #announcementList li:hover, #studentAnnouncementList li:hover {
+    background-color: #f1f1f1;
+}
+
+/* ---------- Delete Buttons in Lists (Updated Style) ---------- */
+#taskList li button, #announcementList li button {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 6px; /* Reduced border radius */
+    padding: 5px 10px; /* Reduced padding */
+    cursor: pointer;
+    font-size: 11px; /* Reduced font size */
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+#taskList li button:hover, #announcementList li button:hover {
+    background-color: #ff4757;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+
+/* Labels in Forms */
+label {
+    display: block;
+    margin-top: 8px; /* Reduced from 10px */
+    font-weight: bold;
+    font-size: 12px; /* Reduced font size */
+}
+
+/* Done Task Style */
+.done {
+    text-decoration: line-through;
+    color: #888;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    #schoolHeader {
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 15px; /* Reduced margin */
+    }
+    #schoolLogo {
+        height: 30px; /* Smaller on mobile */
+        margin-bottom: 3px;
+        margin-right: 0;
+    }
+    #schoolName {
+        font-size: 1.5rem; /* Smaller on mobile */
+    }
+    input, select, button {
+        width: 100%;
+        margin: 4px 0; /* Reduced margin */
+    }
+}
